@@ -1,13 +1,4 @@
-# 利用opencv进行图像处理
-
-
-
-## 概述
-
-
-
-```cpp
-#include <opencv2 / opencv.hpp>//包含了众多模块 一劳永逸
+#include <opencv2/opencv.hpp>//包含了众多模块 一劳永逸
 
 using namespace std;
 using namespace cv;
@@ -161,27 +152,11 @@ void print_opencv_version()
 	printf("version:" CV_VERSION);
 
 }
-```
 
+int main()
+{
+    //测试每个函数
+	print_opencv_version();
 
-
-
-
-## imread 函数
-
-```cpp
-CV_EXPORTS_W Mat imread( const String& filename, int flags = IMREAD_COLOR );
-```
-
-![image-20200226105032319](opencv.assets/image-20200226105032319.png)
-
-![image-20200226105044559](opencv.assets/image-20200226105044559.png)
-
-
-
-
-
-# 我国车牌标准 GA36-2018
-
-[link]( https://max.book118.com/html/2019/0430/8026050061002021.shtm )
-
+	return 0;
+}
