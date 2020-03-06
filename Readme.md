@@ -10,9 +10,11 @@
 
 + 车牌识别**LPR**[License Plate Recognition]
 
+## 图像的基础知识
 
 
-##  数字图像的表示
+
+###  数字图像的表示
 
 + 黑白图像:0和1
 + 灰度图像
@@ -20,7 +22,507 @@
 + 彩色图像
   + ![image-20200226173723353](Readme.assets/image-20200226173723353.png)
 
-##  简单的例子
+
+
+### 图片的内存表示
+
+> 彩色图片
+
+ ![See the source image](Readme.assets/2.png) 
+
+> 一张图片由行`row` 和列`column`以及通道`channel`,而每个数值表示则用数字表示,这个数字可以用char来表示,一个char 8 bit,从-126~125 ;也可以用unsigned char 表示,则范围是0-255,
+>
+> 同时可以看出,颜色通道的顺序是反过来的,不是RGB,而是BGR
+>
+> 可以使用`isContinuous()`来判断矩阵是否连续存储
+
+
+
+> 灰度图片
+
+ ![img](Readme.assets/20160227202011758.png) 
+
+
+
+## 图像学原理
+
+### 线性混合
+
+>  核心公式
+
+$$
+g(x) = (1-\alpha)f_0(x)+\alpha f_1(x)
+$$
+
+>  令 $\theta = 1- \alpha$
+
+$$
+g(x) = \theta f_0(x) + \alpha f_1(x)
+$$
+
+> $g(x)$是由两个函数线性叠加而成.$\alpha$ 和 $\theta$ 是权重系数,取值在0到1之间.
+>
+> 若将两个函数看成是图像,则可以表示两个图像线性混合.
+
+
+
+### 算子
+
+> 一般算子都是一个函数.
+>
+> 对任何函数进行某一项操作,都可称为算子
+>
+> $ f(x) -算子-> g(f(x))$
+
+
+
+
+
+
+
+
+
+## ROI:region of interest
+
+> 定义感兴趣的地方,这样可以减少处理时间
+>
+> + 贴图功能
+
+
+
+> 功能原理:
+>
+> 首先ROI并不是函数用来操作,而是直接在**原图像取出一部分进行操作**而已.
+>
+> 然后对ROI这个区域的操作就相当于作用在原图上.
+>
+> 所以只是缩小的操作范围,并没有什么神奇的地方.
+
+### 定义ROI区域
+
+1. 使用Rect
+
+   ```cpp
+   //利用感兴趣区域ROI实现图像叠加
+   bool  ROI_AddImage()
+   {
+   
+   	Mat src = imread("dota_pa.jpg");
+   	Mat logo = imread("dota_logo.jpg");
+   
+   	if (!src.data) { cerr<<"读取srcImage1错误~！ \n"; return false; }
+   	if (!logo.data) { cerr<<"读取logoImage错误~！ \n"; return false; }
+   
+   	cout << src.cols <<"*"<< src.rows << endl;//800*450
+   	cout << logo.cols <<"*"<< logo.rows << endl;//200*200
+   
+   	//定义感兴趣的地方
+   	Mat imageROI = src(Rect(200, 250, logo.cols, logo.rows));
+   
+   	Mat mask = imread("dota_logo.jpg", 0);//灰度图
+   
+   	//使用mask第二个参数,使得图标边缘的颜色和原图保持一致
+   	logo.copyTo(imageROI, mask);
+   
+   	namedWindow("<1>利用ROI实现图像叠加示例窗口");
+   	imshow("<1>利用ROI实现图像叠加示例窗口", src);
+   
+   	return true;
+   }
+   ```
+
+
+
+### addWeighted()
+
+> 计算两个数组(图像阵列)的加权和
+
+```cpp
+void addWeighted(InputArray src1, 	//加权的第一张图
+                 double alpha, 		//权重
+                 InputArray src2,	//和第一张图类型相同的第二张图
+                 double beta, 		//权重
+                 double gamma, 
+                 OutputArray dst, 	//输出的数组
+                 int dtype = -1		//默认相同深度
+                );
+```
+
+> 
+
+$$
+dst = src1*\alpha + src2*\beta + \gamma
+$$
+
+
+
+
+
+> 例子
+
+```cpp
+//线性混合实现函数,指定区域线性图像混合
+bool  ROI_LinearBlending()
+{
+
+	Mat src = imread("dota_pa.jpg", 1);
+	Mat logo = imread("dota_logo.jpg");
+
+	if (!src.data) { cerr << "读取srcImage1错误~！ \n"; return false; }
+	if (!logo.data) { cerr << "读取logoImage错误~！ \n"; return false; }
+
+	Mat imageROI;//ROI
+	//方法一
+	imageROI = src(Rect(200, 250, logo.cols, logo.rows));
+
+	//方法二
+	//imageROI= srcImage4(Range(250,250+logoImage.rows),Range(200,200+logoImage.cols));
+
+	//线性混合
+	addWeighted(imageROI, 0.5, logo, 0.3, 0., imageROI);
+
+	imshow("区域线性图像混合", src);
+
+	return true;
+}
+```
+
+
+
+![image-20200306165031376](Readme.assets/image-20200306165031376.png)
+
+
+
+```cpp
+//另一个实例
+bool  LinearBlending()
+{
+	double alphaValue = 0.5;
+	double betaValue;
+	Mat srcImage2, srcImage3, dstImage;
+
+	srcImage2 = imread("mogu.jpg");
+	srcImage3 = imread("rain.jpg");
+
+	if (!srcImage2.data) { cerr << "读取srcImage2错误！ \n"; return false; }
+	if (!srcImage3.data) { cerr << "读取srcImage3错误！ \n"; return false; }
+
+	// 【2】进行图像混合加权操作
+	betaValue = (1.0 - alphaValue);
+	addWeighted(srcImage2, alphaValue, srcImage3, betaValue, 0.0, dstImage);
+
+	// 【3】显示原图窗口
+	imshow("<2>线性混合示例窗口【原图】", srcImage2);
+	imshow("<3>线性混合示例窗口【效果图】", dstImage);
+
+	return true;
+
+}
+```
+
+
+
+![image-20200306171438148](Readme.assets/image-20200306171438148.png)
+
+
+
+1. 指定感兴趣的行或列的范围Range
+
+
+
+
+
+
+
+
+
+## OpenCV的数据结构
+
+
+
+### opencv的坐标系
+
+ ![在这里插入图片描述](Readme.assets/20190403104652660.png) 
+
+
+
+
+
+
+
+
+
+
+
+#### opencv中每个数字(灰度值:question:)表示
+
+`CV_[位数][带符号么][类型前缀]C[通道数]`	
+
+```cpp
+CV_8UC3:表示每个数字用8bit的unsigned无符号整数存储,有三个通道
+
+```
+
+### Mat
+
+#### 存储指代
+
+> 图像本质上还是用矩阵去存储,所以Mat类本质上是矩阵`matrix`类
+
+1. 图像
+2. 矩阵
+
+#### 历史
+
+> 以前叫IplImage 会造成内存泄漏,所以更新完之后是Mat类
+>
+> + 不必手动开辟空间
+> + 不必再不需要时立即将空间释放
+
+#### 组成部分
+
+> 1. 矩阵头
+>
+>    + 采用引用计数机制来复制图像
+>
+>   ```cpp
+>   //! the matrix dimensionality, >= 2
+>   int dims;
+>   //! the number of rows and columns or (-1, -1) when the matrix has more than 2 dimensions
+>   int rows, cols;
+>   //! pointer to the data
+>   uchar* data;
+>   ```
+>
+>    + 如果是想复制完整的数据
+>
+>      + 采用clone() 
+>
+>        ```cpp
+>        Mat F = A.clone();
+>        ```
+>
+>       + 采用 copyTo()
+>
+>         ```cpp
+>         A.copyTo(G);
+>         ```
+>
+> 2. 一个指向存储所有像素值的矩阵
+
+#### 显式创建Mat对象
+
+##### 1. 构造函数
+
+```cpp
+Mat M(2,2,CV_8UC3,Scalar(0,0,255));
+```
+
+Scalar(0,0,255)表示初始值
+
+![image-20200306115137278](Readme.assets/image-20200306115137278.png)
+
+##### 2. create成员函数
+
+```cpp
+Mat m;
+m.create();
+```
+
+### Point
+
+> 二维坐标系下的点
+
+
+
+### Scalar
+
+> 表示具有四个元素的数组.用于传递像素值.如果用不到第四个参数,可以不写.
+
+```cpp
+Scalar(a,b,c);//RGB颜色值:R:c,G:b,B:a//倒过来了
+```
+
+
+
+### Rect
+
+> 矩形:左上角的坐标,长度,宽度
+
+
+
+### Size
+
+> 表示尺寸
+
+
+
+### InputArray
+
+> 当成Mat即可
+
+
+
+
+
+### 颜色模型
+
+#### RGB
+
+#### HSV HLS
+
+
+
+
+
+## OpenCV的函数
+
+### imread 函数
+
+> 原型
+
+```cpp
+CV_EXPORTS_W Mat imread( const String& filename, int flags = IMREAD_COLOR );
+```
+
+> 作用:读取图像
+
+![image-20200226105032319](opencv.assets/image-20200226105032319.png)
+
+![image-20200226105044559](opencv.assets/image-20200226105044559.png)
+
+### glob 函数
+
+> 原型
+
+```cpp
+CV_EXPORTS void glob(String pattern, std::vector<String>& result, bool recursive = false);
+```
+
+> 作用:遍历文件夹
+
+```cpp
+string pattern = "C:\\Users\\tailiang\\Pictures\\LPR_test\\*.jpg";
+vector<String> files;
+glob(pattern, files);//opencv 自带的遍历文件夹的方法
+```
+
++ 第一个参数是搜索的模式
++ 第二个参数是一个vector但是类型是OpenCV的String
++ 第三个参数是是否递归搜索
+
+
+
+### 操作时间
+
+> 衡量某个算法执行的时间
+
+```cpp
+double start = static_cast<double>(getTickCount());
+
+	//操作...
+
+double end = static_cast<double>(getTickCount());
+double during_time = (end - start) / getTickFrequency();
+cout << "run time :"<<during_time << endl;
+```
+
+
+
+
+
+### 基本图形绘制
+
++ line 直线
++ ellipse 椭圆
++ rectangle 矩形
++ circle 圆形
++ filPoly 填充的多边形
+
+
+
+
+
+### :question:LUT 函数
+
+> 不知为何物
+
+
+
+### 处理像素
+
+1. 指针访问
+
+```cpp
+void colorReduce(Mat& inputImage, Mat& outputImage, int div)
+{
+	outputImage = inputImage.clone();  //不作用在原图上且对图片数据部分处理=>拷贝,不能简单的赋值
+	int rowNumber = outputImage.rows;  //行数
+	int colNumber = outputImage.cols * outputImage.channels();  //列数 x 通道数=每一行元素的个数
+
+	for (int i = 0; i < rowNumber; i++)  //行循环
+	{
+		uchar* data = outputImage.ptr<uchar>(i);  //获取第i行的首地址
+		//接下来就相当于数组操作了
+		for (int j = 0; j < colNumber; j++)   
+		{
+			data[j] = data[j] / div * div + div / 2;
+		}
+	}
+}
+
+```
+
+2. 迭代器
+
+```cpp
+void colorReduce(Mat& inputImage, Mat& outputImage, int div)
+{
+	outputImage = inputImage.clone();  //不作用在原图上且对图片数据部分处理=>拷贝,不能简单的赋值
+	//迭代器
+	//typedef Vec<uchar, 3> Vec3b;//含有三个uchar的元素的向量
+	Mat_<Vec3b>::iterator it = outputImage.begin<Vec3b>(); //指向的是第一行,第一列的三个通道的指针
+	Mat_<Vec3b>::iterator itend = outputImage.end<Vec3b>();//指向的是最后一行,最后一列的三个通道的指针
+
+	for (; it != itend; ++it)
+	{
+		(*it)[0] = (*it)[0] / div * div + div / 2;//B
+		(*it)[1] = (*it)[1] / div * div + div / 2;//G
+		(*it)[2] = (*it)[2] / div * div + div / 2;//R
+	}
+}
+```
+
+3. 动态地址运算配合at
+
+```cpp
+void colorReduce(Mat& inputImage, Mat& outputImage, int div)
+{
+	outputImage = inputImage.clone();  //不作用在原图上且对图片数据部分处理=>拷贝,不能简单的赋值
+	int rowNumber = outputImage.rows;  //行数
+	int colNumber = outputImage.cols;  //列数
+
+	//和迭代器类似,也是指向了三通道的像素,只是表示形式不同
+	for (int i = 0; i < rowNumber; i++)
+	{
+		for (int j = 0; j < colNumber; j++)
+		{
+			outputImage.at<Vec3b>(i, j)[0] = outputImage.at<Vec3b>(i, j)[0] / div * div + div / 2;  //蓝色通道
+			outputImage.at<Vec3b>(i, j)[1] = outputImage.at<Vec3b>(i, j)[1] / div * div + div / 2;  //绿色通道
+			outputImage.at<Vec3b>(i, j)[2] = outputImage.at<Vec3b>(i, j)[2] / div * div + div / 2;  //红是通道
+		}      
+	}
+}
+
+```
+
+
+
+
+
+
+
+##  例子
 
 > 代码参考毛星云的《OpenCV3编程入门》[百度云链接🔗](https://pan.baidu.com/s/1j5P4KtmKdvIxAqg9NuUjFQ) 提取码：`g9u9` 
 > 简单感受下OpenCV的魅力
@@ -38,7 +540,6 @@
 + 读取图像,显示图像
 
   ```cpp
-  
   /*
    *@function:opencv_1_1
    *@desc:读取图像,显示图像
@@ -242,7 +743,37 @@ void print_opencv_version()
 
 
 
-## 二值化
+
+
+## 项目
+
+### LPR
+
+> 车牌处理的大致过程-对应于papers的文件夹
+>
+> 1. 车牌定位
+> 2. 二值化
+> 3. 车牌字符分割
+> 4. 字符识别
+
+
+
+#### 车牌分割
+
++ 基于彩色图色彩信息的定位
+  + 回避了系统实时性的要求
++ 基于阙值分割的方法
+  + 忽略了空间信息--难以解决背景复杂的图像分割问题
++ 基于边缘检测(Hough变换)的方法
+  + 要求图像边缘的连续性好
++ 基于多分辨率的方法
+  + 一般和别的方法共同使用,不适用于复杂的背景
++ 基于灰度聚类的方法
+  + 忽略了空间信息--难以解决背景复杂的图像分割问题
+
+
+
+### 二值化
 
 > 二值化不是二值图像,只是将**灰度图像**利用**阙值threshold**进行了划分
 
@@ -253,7 +784,6 @@ void print_opencv_version()
 + 动态阙值
 
 ```cpp
-
 //二值化图像
 void oust_method_process_image()
 {
@@ -287,233 +817,6 @@ void oust_method_process_image()
 	waitKey(0);
 }
 ```
-
-
-
-## OpenCV的函数
-
-### imread 函数
-
-> 原型
-
-```cpp
-CV_EXPORTS_W Mat imread( const String& filename, int flags = IMREAD_COLOR );
-```
-
-> 作用:读取图像
-
-![image-20200226105032319](opencv.assets/image-20200226105032319.png)
-
-![image-20200226105044559](opencv.assets/image-20200226105044559.png)
-
-### glob 函数
-
-> 原型
-
-```cpp
-CV_EXPORTS void glob(String pattern, std::vector<String>& result, bool recursive = false);
-```
-
-> 作用:遍历文件夹
-
-```cpp
-string pattern = "C:\\Users\\tailiang\\Pictures\\LPR_test\\*.jpg";
-vector<String> files;
-glob(pattern, files);//opencv 自带的遍历文件夹的方法
-```
-
-+ 第一个参数是搜索的模式
-+ 第二个参数是一个vector但是类型是OpenCV的String
-+ 第三个参数是是否递归搜索
-
-
-
-## OpenCV的数据结构
-
-### 图片的内存表示
-
-> 彩色图片
-
- ![See the source image](Readme.assets/2.png) 
-
-> 一张图片由行`row` 和列`column`以及通道`channel`,而每个数值表示则用数字表示,这个数字可以用char来表示,一个char 8 bit,从-126~125 ;也可以用unsigned char 表示,则范围是0-255,
->
-> 同时可以看出,颜色通道的顺序是反过来的,不是RGB,而是BGR
->
-> 可以使用`isContinuous()`来判断矩阵是否连续存储
-
-
-
-> 灰度图片
-
-![image-20200306142815312](Readme.assets/image-20200306142815312.png)
-
-
-
-#### opencv中每个数字(灰度值:question:)表示
-
-`CV_[位数][带符号么][类型前缀]C[通道数]`
-
-```cpp
-CV_8UC3:表示每个数字用8bit的unsigned无符号整数存储,有三个通道
-
-```
-
-
-
-
-
-
-
-### Mat
-
-#### 存储指代
-
-> 图像本质上还是用矩阵去存储,所以Mat类本质上是矩阵`matrix`类
-
-1. 图像
-2. 矩阵
-
-#### 历史
-
-> 以前叫IplImage 会造成内存泄漏,所以更新完之后是Mat类
->
-> + 不必手动开辟空间
-> + 不必再不需要时立即将空间释放
-
-#### 组成部分
-
-> 1. 矩阵头
->
->    + 采用引用计数机制来复制图像
->
->      ```cpp
->      //! the matrix dimensionality, >= 2
->      int dims;
->      //! the number of rows and columns or (-1, -1) when the matrix has more than 2 dimensions
->      int rows, cols;
->      //! pointer to the data
->      uchar* data;
->      ```
->
->    + 如果是想复制完整的数据
->
->      + 采用clone() 
->
->        ```cpp
->        Mat F = A.clone();
->        ```
->    
->      + 采用 copyTo()
->    
->        ```cpp
->        A.copyTo(G);
->        ```
->
-> 2. 一个指向存储所有像素值的矩阵
-
-#### 显式创建Mat对象
-
-##### 1. 构造函数
-
-```cpp
-Mat M(2,2,CV_8UC3,Scalar(0,0,255));
-```
-
-Scalar(0,0,255)表示初始值
-
-![image-20200306115137278](Readme.assets/image-20200306115137278.png)
-
-##### 2. create成员函数
-
-```cpp
-Mat m;
-m.create();
-```
-
-### Point
-
-> 二维坐标系下的点
-
-
-
-### Scalar
-
-> 表示具有四个元素的数组.用于传递像素值.如果用不到第四个参数,可以不写.
-
-```cpp
-Scalar(a,b,c);//RGB颜色值:R:c,G:b,B:a//倒过来了
-```
-
-
-
-### Rect
-
-> 矩形:左上角的坐标,长度,宽度
-
-
-
-### Size
-
-> 表示尺寸
-
-
-
-### InputArray
-
-> 当成Mat即可
-
-
-
-
-
-### 颜色模型
-
-#### RGB
-
-#### HSV HLS
-
-
-
-
-
-## 基本图形绘制
-
-+ line 直线
-+ ellipse 椭圆
-+ rectangle 矩形
-+ circle 圆形
-+ filPoly 填充的多边形
-
-
-
-## 项目
-
-### LPR
-
-> 车牌处理的大致过程-对应于papers的文件夹
->
-> 1. 车牌定位
-> 2. 二值化
-> 3. 车牌字符分割
-> 4. 字符识别
-
-
-
-#### 车牌分割
-
-+ 基于彩色图色彩信息的定位
-  + 回避了系统实时性的要求
-+ 基于阙值分割的方法
-  + 忽略了空间信息--难以解决背景复杂的图像分割问题
-+ 基于边缘检测(Hough变换)的方法
-  + 要求图像边缘的连续性好
-+ 基于多分辨率的方法
-  + 一般和别的方法共同使用,不适用于复杂的背景
-+ 基于灰度聚类的方法
-  + 忽略了空间信息--难以解决背景复杂的图像分割问题
-
-
 
 
 
