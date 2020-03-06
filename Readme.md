@@ -1,5 +1,11 @@
 # 利用OpenCV进行图像处理
 
+[TOC]
+
+
+
+
+
 > 利用opencv这个开源库学习图像处理
 
 + 车牌识别**LPR**[License Plate Recognition]
@@ -16,8 +22,7 @@
 
 ##  简单的例子
 
-> 代码参考毛星云的《OpenCV3编程入门》
->
+> 代码参考毛星云的《OpenCV3编程入门》[百度云链接🔗](https://pan.baidu.com/s/1j5P4KtmKdvIxAqg9NuUjFQ) 提取码：`g9u9` 
 > 简单感受下OpenCV的魅力
 
 + 头文件
@@ -244,6 +249,7 @@ void print_opencv_version()
 + 全局阙值
   + **oust**算法 也叫大津算法/最大间类方差法
 + 局部阙值
+  + 
 + 动态阙值
 
 ```cpp
@@ -286,7 +292,7 @@ void oust_method_process_image()
 
 ## OpenCV的函数
 
-#### imread 函数
+### imread 函数
 
 > 原型
 
@@ -322,6 +328,165 @@ glob(pattern, files);//opencv 自带的遍历文件夹的方法
 
 
 
+## OpenCV的数据结构
+
+### 图片的内存表示
+
+> 彩色图片
+
+ ![See the source image](Readme.assets/2.png) 
+
+> 一张图片由行`row` 和列`column`以及通道`channel`,而每个数值表示则用数字表示,这个数字可以用char来表示,一个char 8 bit,从-126~125 ;也可以用unsigned char 表示,则范围是0-255,
+>
+> 同时可以看出,颜色通道的顺序是反过来的,不是RGB,而是BGR
+>
+> 可以使用`isContinuous()`来判断矩阵是否连续存储
+
+
+
+> 灰度图片
+
+![image-20200306142815312](Readme.assets/image-20200306142815312.png)
+
+
+
+#### opencv中每个数字(灰度值:question:)表示
+
+`CV_[位数][带符号么][类型前缀]C[通道数]`
+
+```cpp
+CV_8UC3:表示每个数字用8bit的unsigned无符号整数存储,有三个通道
+
+```
+
+
+
+
+
+
+
+### Mat
+
+#### 存储指代
+
+> 图像本质上还是用矩阵去存储,所以Mat类本质上是矩阵`matrix`类
+
+1. 图像
+2. 矩阵
+
+#### 历史
+
+> 以前叫IplImage 会造成内存泄漏,所以更新完之后是Mat类
+>
+> + 不必手动开辟空间
+> + 不必再不需要时立即将空间释放
+
+#### 组成部分
+
+> 1. 矩阵头
+>
+>    + 采用引用计数机制来复制图像
+>
+>      ```cpp
+>      //! the matrix dimensionality, >= 2
+>      int dims;
+>      //! the number of rows and columns or (-1, -1) when the matrix has more than 2 dimensions
+>      int rows, cols;
+>      //! pointer to the data
+>      uchar* data;
+>      ```
+>
+>    + 如果是想复制完整的数据
+>
+>      + 采用clone() 
+>
+>        ```cpp
+>        Mat F = A.clone();
+>        ```
+>    
+>      + 采用 copyTo()
+>    
+>        ```cpp
+>        A.copyTo(G);
+>        ```
+>
+> 2. 一个指向存储所有像素值的矩阵
+
+#### 显式创建Mat对象
+
+##### 1. 构造函数
+
+```cpp
+Mat M(2,2,CV_8UC3,Scalar(0,0,255));
+```
+
+Scalar(0,0,255)表示初始值
+
+![image-20200306115137278](Readme.assets/image-20200306115137278.png)
+
+##### 2. create成员函数
+
+```cpp
+Mat m;
+m.create();
+```
+
+### Point
+
+> 二维坐标系下的点
+
+
+
+### Scalar
+
+> 表示具有四个元素的数组.用于传递像素值.如果用不到第四个参数,可以不写.
+
+```cpp
+Scalar(a,b,c);//RGB颜色值:R:c,G:b,B:a//倒过来了
+```
+
+
+
+### Rect
+
+> 矩形:左上角的坐标,长度,宽度
+
+
+
+### Size
+
+> 表示尺寸
+
+
+
+### InputArray
+
+> 当成Mat即可
+
+
+
+
+
+### 颜色模型
+
+#### RGB
+
+#### HSV HLS
+
+
+
+
+
+## 基本图形绘制
+
++ line 直线
++ ellipse 椭圆
++ rectangle 矩形
++ circle 圆形
++ filPoly 填充的多边形
+
+
+
 ## 项目
 
 ### LPR
@@ -332,6 +497,21 @@ glob(pattern, files);//opencv 自带的遍历文件夹的方法
 > 2. 二值化
 > 3. 车牌字符分割
 > 4. 字符识别
+
+
+
+#### 车牌分割
+
++ 基于彩色图色彩信息的定位
+  + 回避了系统实时性的要求
++ 基于阙值分割的方法
+  + 忽略了空间信息--难以解决背景复杂的图像分割问题
++ 基于边缘检测(Hough变换)的方法
+  + 要求图像边缘的连续性好
++ 基于多分辨率的方法
+  + 一般和别的方法共同使用,不适用于复杂的背景
++ 基于灰度聚类的方法
+  + 忽略了空间信息--难以解决背景复杂的图像分割问题
 
 
 
