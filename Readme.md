@@ -14,6 +14,12 @@
 
 
 
+### 图像的幅值
+
+> 图像可以看做是一个定义为二维平面上的信号，该信号的幅值对应于像素的灰度（对于彩色图像则是RGB三个分量），如果我们仅仅考虑图像上某一行像素，则可以将之视为一个定义在一维空间上信号，这个信号在形式上与传统的信号处理领域的时变信号是相似的。不过是一个是定义在空间域上的，而另一个是定义在时间域上的。所以图像的频率又称为空间频率，它反映了图像的像素灰度在空间中变化的情况。例如，一面墙壁的图像，由于灰度值分布平坦，其低频成分就较强，而高频成分较弱；而对于国际象棋棋盘或者沟壑纵横的卫星图片这类具有快速空间变化的图像来说，其高频成分会相对较强，低频则较弱（注意，是相对而言）。
+
+> 如何定量的测量图像的空间频率，最为常用的方法就是二维傅里叶变换。图像经过二维傅里叶变换后会形成与图像等大的复数矩阵，取其幅值形成幅度谱，取其相位形成相位谱。图像的频率能量分布主要体现在幅度谱中。通常习惯将低频成分放在幅度谱的中央，而将高频成分放在幅度谱边缘。
+
 ###  数字图像的表示
 
 + 黑白图像:0和1
@@ -73,6 +79,304 @@ $$
 > 对任何函数进行某一项操作,都可称为算子
 >
 > $ f(x) -算子-> g(f(x))$
+
+> 对函数进行操作,都可以叫做算子
+
+#### 点操作
+
+> 仅仅根据输入像素值来计算相应的输出像素值
+
++ 亮度brightness
++ 对比度contrast
++ 颜色校正colorcorrection
++ 变换transformations
+
+常见的点算子(点操作):
+
++ $g(x)=af(x)+b $
+  + 在图像中,$g(i,j)=af(i,j)+b$
+  + f(x)表示原图像的像素,g(x)表示输出图像像素
+  + a>0 被称为增益gain,常常被用来控制图像的对比度
+  + b通常称为偏置bias,常常被用来控制图像的亮度
+
+
+
+```cpp
+
+//改变图像的亮度和对比度
+//操作像素
+void test_bright_and_contrast()
+{
+	
+	system("color 2F");//改变控制台前景色和背景色
+
+	// 读入用户提供的图像
+	Mat srcImage = imread("1.jpg");
+	if (!srcImage.data) { cerr << "error when read g_srcImage!" << endl; }
+
+	//构造一个和原图像相同的目标图像
+	Mat dstImage = Mat::zeros(srcImage.size(), srcImage.type());
+
+	//设定对比度和亮度的初值
+	g_nContrastValue = 80;
+	g_nBrightValue = 80;
+
+	//创建窗口
+	namedWindow("【效果图窗口】", 1);
+
+	Mat imgs[2] = {srcImage,dstImage };
+
+
+	//创建轨迹条
+	createTrackbar("对比度：", "【效果图窗口】", &g_nContrastValue, 300, ContrastAndBright,imgs);
+	createTrackbar("亮   度：", "【效果图窗口】", &g_nBrightValue, 200, ContrastAndBright,imgs);
+
+	//刚开始调用回调函数来显示图像
+	ContrastAndBright(g_nContrastValue, &imgs);
+	ContrastAndBright(g_nBrightValue, &imgs);
+
+	//输出一些帮助信息
+	cout << endl << "\t运行成功，请调整滚动条观察图像效果\n\n"
+		<< "\t按下“q”键时，程序退出\n";
+
+	//按下“q”键时，程序退出
+	while (char(waitKey(1)) != 'q') {}
+
+}
+```
+
+```cpp
+//改变亮度和对比度的回调函数
+void ContrastAndBright(int, void*usrdata)
+{
+	//解析回调函数的
+	Mat srcImage = *((Mat *)usrdata);
+	Mat dstImage = *(((Mat *)usrdata)+1);
+
+
+	// 三个for循环，执行运算 dstImage(i,j) = a*srcImage(i,j) + b
+	for (int i = 0; i < srcImage.rows; i++)
+	{
+		for (int j = 0; j < srcImage.cols; j++)
+		{
+			for (int c = 0; c < 3; c++)//RGB 三个通道
+			{//乘以0.01 是因为一般对比度在0.0到3.0之间的浮点数会有明显效果
+				//又因为滑动条上的值是整数,所以用到这个转换
+				dstImage.at<Vec3b>(i, j)[c] = //saturate_cast<uchar>将计算的结果转为整数
+					saturate_cast<uchar>((g_nContrastValue * 0.01) * (srcImage.at<Vec3b>(i, j)[c]) + g_nBrightValue);
+			}
+		}
+	}
+	cout << "------------------" << endl;
+	cout << g_nBrightValue << endl;
+	cout << g_nContrastValue << endl;
+	cout << "------------------" << endl;
+	// 显示图像
+	imshow("【效果图窗口】", dstImage);
+}
+
+
+```
+
+![opencv01](Readme.assets/opencv01.gif)
+
+
+
+### 离散傅里叶变换 Discrete Fourier Transform -DFT
+
+>  因为数字图像是离散的，像素的取值是离散的，因此这里的傅里叶变换是离散形式，即DFT。 
+
+>  图像经过傅里叶变换会分解为正弦和余弦成分。换句话说，会把一副图像从空间域转换到频域。
+>
+>   变换的结果是**复数** 
+>
+> 
+
+> 作用:**得到图像中的几何结构信息.**
+>
+> 而要想得到图像的几何结构信息,只有 通过幅度.换句话说,幅度图像包含图像几何结构的所有信息.
+>
+> 对于图像来说:
+>
+> + **高频部分**代表图像的细节,纹理信息
+> + **低频部分**代表了图像的轮廓信息
+>
+> 比如:对精细的图像进行**低通滤波器**,那么意味着低频的图像信号可以通过,排除了高频的,那么图像只剩下轮廓
+>
+> 如果图像受到的噪声恰好位于某个特定的频率范围内,则可以通过滤波器来恢复原来的图像
+
+> 应用方面:
+>
+> + 图像增强
+> + 图像去噪
+> + 图像分割之边缘检测
+> + 图像特征提取
+> + 图像压缩
+> + ...
+
+
+
+```cpp
+#include "Header.h"
+
+//快速傅里叶变换
+void test_dft()
+{
+	//以灰度模式读取原始图像并显示
+	Mat srcImage = imread("2.jpg", 0);
+	if (!srcImage.data) { cerr << "read error" << endl; }
+	imshow("原始图像", srcImage);
+
+
+	/*
+		DFT performance is not a monotonic function of a vector size. Therefore, when you calculate
+		convolution of two arrays or perform the spectral analysis of an array, it usually makes sense to
+		pad the input data with zeros to get a bit larger array that can be transformed much faster than the
+		original one. Arrays whose size is a power-of-two (2, 4, 8, 16, 32, ...) are the fastest to process.
+		Though, the arrays whose size is a product of 2's, 3's, and 5's (for example, 300 = 5\*5\*3\*2\*2)
+		are also processed quite efficiently.
+
+		> 简而言之,就是要想进行快速傅里叶变换首先先把矩阵的size变化到power-of-two的size or product of 2's
+		> 怎么做呢?填充0
+		> 离散傅里叶变换的运行速度和图像的尺寸有很大关系,所以要进行处理
+		> 常用的方法是通过填充新的边缘像素的方法来获取最佳图像尺寸
+	*/
+	//先计算出最佳的处理size
+	int m = getOptimalDFTSize(srcImage.rows);
+	int n = getOptimalDFTSize(srcImage.cols);
+
+	//再将需要填充的地方进行填充
+	Mat padded;//目标图像-待处理的图像
+	//填充边缘像素,按照上下左右
+	copyMakeBorder(srcImage, padded, 0, m - srcImage.rows, 0, n - srcImage.cols, BORDER_CONSTANT, Scalar::all(0));
+
+	//傅里叶变换的结果是复数,这就是说对于每个原图像,结果会有两个图像值
+	//频域值至少存在float格式中
+	//为傅立叶变换的结果(实部和虚部)分配存储空间。
+	//增加了一个复数存储部分 即zero部分
+	Mat planes[] = { Mat_<float>(padded), Mat::zeros(padded.size(), CV_32F) };
+	
+	//将planes数组组合合并成一个多通道的数组complexI
+	Mat complexI;
+	merge(planes, 2, complexI);//merge将多个单通道的图像合并成一个多通道的图像
+
+	//进行就地(in-place)离散傅里叶变换.所谓就地,就是输入和输出都是同一副图像.
+	dft(complexI, complexI);
+
+	//-------到此,DFT已经变换完了----为了用DFT获得图像的几何结构部分
+
+	//-------处理
+
+	//为了得到图像的幅值
+	//因为幅值是需要实部和虚部,所以要进行split
+	split(complexI, planes); // 将多通道数组complexI分离成几个单通道数组，planes[0] = Re(DFT(I), planes[1] = Im(DFT(I))
+
+	//得到幅值--但是不利于观察,所以还需要一步log转换
+	magnitude(planes[0], planes[1], planes[0]); 
+
+	//planes[0]就是幅值图像
+	Mat magnitudeImage = planes[0];
+
+	//log转换
+	//M1 = log(1+M)
+	magnitudeImage += Scalar::all(1);
+	log(magnitudeImage, magnitudeImage);//求自然对数
+
+	//【7】剪切和重分布幅度图象限
+	//若有奇数行或奇数列，进行频谱裁剪      
+	magnitudeImage = magnitudeImage(Rect(0, 0, magnitudeImage.cols & -2, magnitudeImage.rows & -2));
+	//重新排列傅立叶图像中的象限，使得原点位于图像中心  
+	int cx = magnitudeImage.cols / 2;
+	int cy = magnitudeImage.rows / 2;
+	Mat q0(magnitudeImage, Rect(0, 0, cx, cy));   // ROI区域的左上
+	Mat q1(magnitudeImage, Rect(cx, 0, cx, cy));  // ROI区域的右上
+	Mat q2(magnitudeImage, Rect(0, cy, cx, cy));  // ROI区域的左下
+	Mat q3(magnitudeImage, Rect(cx, cy, cx, cy)); // ROI区域的右下
+	//交换象限（左上与右下进行交换）
+	Mat tmp;
+	q0.copyTo(tmp);
+	q3.copyTo(q0);
+	tmp.copyTo(q3);
+	//交换象限（右上与左下进行交换）
+	q1.copyTo(tmp);
+	q2.copyTo(q1);
+	tmp.copyTo(q2);
+
+	//-- 经过对数转换之后,图像值还仍然可能不在0-1之间,所以进行归一化处理
+	//非黑即白
+
+	//【8】归一化，用0到1之间的浮点值将矩阵变换为可视的图像格式
+	//此句代码的OpenCV2版为：
+	//normalize(magnitudeImage, magnitudeImage, 0, 1, CV_MINMAX); 
+	//此句代码的OpenCV3版为:
+	normalize(magnitudeImage, magnitudeImage, 0, 1, NORM_MINMAX);
+
+	//【9】显示效果图
+	imshow("频谱幅值", magnitudeImage);
+	waitKey();
+
+
+}
+```
+
+
+
+
+
+### 滤波
+
+> 图像滤波:消除图像中的噪声成分
+>
+> 也叫做图像的平滑化或者滤波操作
+
++ 信号和图像的能量大部分集中在幅度谱的低频和中频短
++ 较高频段,有用的信息被噪声淹没
+
+目的:
+
++ 抽出对象的特征
++ 消除噪声
+
+要求:
+
++ 不能损坏图像的轮廓和边缘等重要信息
++ 使得更清晰
+
+
+
+### 线性滤波
+
+
+
+
+
+#### 平滑处理smoothing 也叫模糊处理bluring
+
+> 用来减少图像上的噪点或者失真
+>
+> 在涉及降低图像分辨率时,平滑处理是非常好用的方法
+
++ smoothing是低频增强的技术
+
+
+
+#### 方框滤波
+
+
+
+#### 均值滤波
+
+
+
+
+
+#### 高斯滤波
+
+
+
+
+
+
 
 
 
@@ -301,9 +605,9 @@ CV_8UC3:表示每个数字用8bit的unsigned无符号整数存储,有三个通�
 >        ```cpp
 >        Mat F = A.clone();
 >        ```
->
+>    
 >       + 采用 copyTo()
->
+>    
 >         ```cpp
 >         A.copyTo(G);
 >         ```
@@ -375,6 +679,23 @@ Scalar(a,b,c);//RGB颜色值:R:c,G:b,B:a//倒过来了
 
 
 
+### FileStorage 类
+
+> opencv利用xml json YAML 进行存储和恢复opencv的数据结构,不管是复杂的还是简单的.
+
+>  Use the following procedure to write something to XML, YAML or JSON:
+
++  Create new FileStorage and open it for writing. It can be done with a single call to
+  FileStorage::FileStorage constructor that takes a filename, or you can use the default constructor
+  and then call FileStorage::open. Format of the file (XML, YAML or JSON) is determined from the filename
+  extension (".xml", ".yml"/".yaml" and ".json", respectively)
+
++ Write all the data you want using the streaming operator `<<`, just like in the case of STL streams.
+
++ Close the file using FileStorage::release. FileStorage destructor also closes the file.
+
+  
+
 ## OpenCV的函数
 
 ### imread 函数
@@ -438,6 +759,74 @@ cout << "run time :"<<during_time << endl;
 + rectangle 矩形
 + circle 圆形
 + filPoly 填充的多边形
+
+
+
+### 滑动条
+
+```cpp
+int createTrackbar(const String& trackbarname, //滑动条的名字
+                   const String& winname,		//在指定窗口显示
+                   int* value,					//滑动条的当前值
+                   int count,					//最大值
+                   TrackbarCallback onChange = 0,//回调函数,当滑动条滑动改变时,调用的函数
+                   void* userdata = 0			//回调函数的参数
+                  );
+```
+
+调用:
+
+```cpp
+normalize(magnitudeImage, magnitudeImage, 0, 1, NORM_MINMAX);
+```
+
+
+
+
+
+### copyMakeBorder
+
+> 填充图像边界像素
+
+```cpp
+void copyMakeBorder(InputArray src, //原图像
+                    OutputArray dst,//目标图像 加上border之后的size的图像//Size(src.cols+left+right,src.rows+top+bottom) 
+					int top, int bottom, int left, int right,//上下左右加的像素个数
+					int borderType,
+                    const Scalar& value = Scalar() 
+                   );
+```
+
+> Border value if borderType==BORDER_CONSTANT .
+
+
+
+### magnitude 幅值计算
+
+>  复数有实部（Real - Re）和虚部 (imaginary - Im) 。DFT的结果是复数 
+
+ ![[公式]](Readme.assets/equation-1583724799525.svg) 
+
+```cpp
+void magnitude(InputArray x, InputArray y, OutputArray magnitude);
+```
+
+> 第三个参数就是幅值图像,但是不利于观察,所以还需要进log转换
+
+
+
+### normalize 归一化
+
+```cpp
+void normalize( InputArray src, 
+               InputOutputArray dst, 
+               double alpha = 1, 
+               double beta = 0,
+			   int norm_type = NORM_L2, 
+               int dtype = -1, 
+               InputArray mask = noArray()
+              );
+```
 
 
 

@@ -1,28 +1,30 @@
-//ï¿½ï¿½ï¿½Ô¹ï¿½ï¿½ï¿½
+//²âÊÔ¹¦ÄÜ
 
 #include "../include/Header.h"
 
 
+extern int g_nContrastValue; //¶Ô±È¶ÈÖµ
+extern int g_nBrightValue;  //ÁÁ¶ÈÖµ
 
-//ï¿½ï¿½Öµï¿½ï¿½Í¼ï¿½ï¿½
+//¶þÖµ»¯Í¼Ïñ
 void oust_method_process_image()
 {
 	string pattern = "C:\\Users\\tailiang\\Pictures\\LPR_test\\*.jpg";
 	vector<String> files;
-	glob(pattern, files);//opencv ï¿½Ô´ï¿½ï¿½Ä±ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½ï¿½ÐµÄ·ï¿½ï¿½ï¿½
+	glob(pattern, files);//opencv ×Ô´øµÄ±éÀúÎÄ¼þ¼ÐµÄ·½·¨
 	int i = 0;
 	for (auto img_file : files)
 	{
-		Mat src_img = imread(img_file, IMREAD_GRAYSCALE);//input image ï¿½ï¿½ï¿½ï¿½ï¿½Ç»Ò¶ï¿½Í¼Æ¬
+		Mat src_img = imread(img_file, IMREAD_GRAYSCALE);//input image ±ØÐëÊÇ»Ò¶ÈÍ¼Æ¬
 		Mat dest_img;
 
 
-		// È«ï¿½Ö¶ï¿½Öµï¿½ï¿½ oustï¿½ï¿½ï¿½ï¿½
+		// È«¾Ö¶þÖµ»¯ oust·½·¨
 		//double thresh_value = threshold(src_img, dest_img, 0, 255, THRESH_OTSU);
 		//cout << img_file << ":" << thresh_value << endl;
 
 
-		// ï¿½Ö²ï¿½ï¿½ï¿½Öµï¿½ï¿½--Ð§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+		// ¾Ö²¿¶þÖµ»¯--Ð§¹û¸üºÃ
 		int maxVal = 255;
 		int blockSize = 41;
 		double C = 0;
@@ -37,24 +39,24 @@ void oust_method_process_image()
 	waitKey(0);
 }
 
-//ï¿½ï¿½ï¿½Æ»Ò¶ï¿½Ö±ï¿½ï¿½Í¼
+//»æÖÆ»Ò¶ÈÖ±·½Í¼
 int histogram()
 {
-	//Mat src_img = imread("C:\\Users\\tailiang\\Pictures\\LPR_test\\img1.jpg", IMREAD_GRAYSCALE);//input image ï¿½ï¿½ï¿½ï¿½ï¿½Ç»Ò¶ï¿½Í¼Æ¬
-	//ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½
+	//Mat src_img = imread("C:\\Users\\tailiang\\Pictures\\LPR_test\\img1.jpg", IMREAD_GRAYSCALE);//input image ±ØÐëÊÇ»Ò¶ÈÍ¼Æ¬
+	//¼ÓÔØÍ¼Ïñ
 	Mat image;
 	image = imread("C:\\Users\\tailiang\\Pictures\\LPR_test\\img1.jpg", IMREAD_COLOR);
-	//ï¿½Ð¶ï¿½ï¿½Ç·ï¿½Îªï¿½ï¿½
+	//ÅÐ¶ÏÊÇ·ñÎª¿Õ
 	if (image.empty())
 	{
 		cerr << "" << endl;
 		return -1;
 	}
-	//ï¿½ï¿½ï¿½ï¿½Ò¶ï¿½Í¼ï¿½ï¿½×ªï¿½É»Ò¶ï¿½Í¼
+	//¶¨Òå»Ò¶ÈÍ¼Ïñ£¬×ª³É»Ò¶ÈÍ¼
 	Mat grayImage;
 	cvtColor(image, grayImage, COLOR_BGR2GRAY);
-	//double x=compareHist(hist,hist,/*CV_COMP_CORRELï¿½ï¿½CV_COMP_INTERSECT*/CV_COMP_BHATTACHARYYA);
-	//Ö±ï¿½ï¿½Í¼Í¼ï¿½ï¿½
+	//double x=compareHist(hist,hist,/*CV_COMP_CORREL¡¢CV_COMP_INTERSECT*/CV_COMP_BHATTACHARYYA);
+	//Ö±·½Í¼Í¼Ïñ
 	Mat hist = getHistograph(grayImage);
 
 	namedWindow("hist", WINDOW_NORMAL);
@@ -65,37 +67,37 @@ int histogram()
 
 }
 
-//ï¿½ï¿½Ò»ï¿½ï¿½atomï¿½à¼­ï¿½ï¿½ï¿½Ä±ï¿½Ö¾
+//»­Ò»¸öatom±à¼­Æ÷µÄ±êÖ¾
 void draw_atom()
 {
 
-	// ï¿½ï¿½ï¿½ï¿½ï¿½Õ°×µï¿½MatÍ¼ï¿½ï¿½
+	// ´´½¨¿Õ°×µÄMatÍ¼Ïñ
 	Mat atomImage = Mat::zeros(WINDOW_WIDTH, WINDOW_WIDTH, CV_8UC3);
-	//ï¿½ï¿½ï¿½ï¿½Atom ï¿½à¼­ï¿½ï¿½ï¿½Ä±ï¿½Ö¾
-	//ï¿½È»ï¿½ï¿½ï¿½Î§ï¿½Æµï¿½ï¿½ï¿½Ô²ï¿½ï¿½
+	//»æÖÆAtom ±à¼­Æ÷µÄ±êÖ¾
+	//ÏÈ»æÖÆÎ§ÈÆµÄÍÖÔ²Ïß
 	DrawEllipse(atomImage, 90);
 	DrawEllipse(atomImage, 0);
 	DrawEllipse(atomImage, 45);
 	DrawEllipse(atomImage, -45);
-	//ï¿½ï¿½ï¿½ï¿½Ô²ï¿½ï¿½
+	//»æÖÆÔ²ÐÄ
 	DrawFilledCircle(atomImage, Point(WINDOW_WIDTH / 2, WINDOW_WIDTH / 2));
 
 	imshow(WINDOW_NAME1, atomImage);
-	moveWindow(WINDOW_NAME1, 0, 200);//ï¿½Æ¶ï¿½ï¿½ï¿½ï¿½Úµï¿½Ö¸ï¿½ï¿½Î»ï¿½ï¿½
+	moveWindow(WINDOW_NAME1, 0, 200);//ÒÆ¶¯´°¿Úµ½Ö¸¶¨Î»ÖÃ
 
 
 	waitKey(0);
 }
 
-//ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ ï¿½ï¿½ï¿½ï¿½?
+//»­Ò»¸ö¶à±ßÐÎÍ¼ µÆËþ?
 void draw_pologon()
 {
-	// ï¿½ï¿½ï¿½ï¿½ï¿½Õ°×µï¿½MatÍ¼ï¿½ï¿½
+	// ´´½¨¿Õ°×µÄMatÍ¼Ïñ
 	Mat rookImage = Mat::zeros(WINDOW_WIDTH, WINDOW_WIDTH, CV_8UC3);
-	//ï¿½È»ï¿½ï¿½Æ³ï¿½ï¿½ï¿½Ô²
+	//ÏÈ»æÖÆ³öÍÖÔ²
 	DrawPolygon(rookImage);
 
-	//ï¿½ï¿½ï¿½Æ¾ï¿½ï¿½ï¿½
+	//»æÖÆ¾ØÐÎ
 	rectangle(rookImage,
 		Point(0, 7 * WINDOW_WIDTH / 8),
 		Point(WINDOW_WIDTH, WINDOW_WIDTH),
@@ -104,7 +106,7 @@ void draw_pologon()
 		8);
 
 
-	//ï¿½ï¿½ï¿½ï¿½Ò»Ð©ï¿½ß¶ï¿½
+	//»æÖÆÒ»Ð©Ïß¶Î
 	DrawLine(rookImage, Point(0, 15 * WINDOW_WIDTH / 16), Point(WINDOW_WIDTH, 15 * WINDOW_WIDTH / 16));
 	DrawLine(rookImage, Point(WINDOW_WIDTH / 4, 7 * WINDOW_WIDTH / 8), Point(WINDOW_WIDTH / 4, WINDOW_WIDTH));
 	DrawLine(rookImage, Point(WINDOW_WIDTH / 2, 7 * WINDOW_WIDTH / 8), Point(WINDOW_WIDTH / 2, WINDOW_WIDTH));
@@ -114,4 +116,48 @@ void draw_pologon()
 	moveWindow(WINDOW_NAME2, WINDOW_WIDTH, 200);
 
 	waitKey(0);
+}
+
+
+//¸Ä±äÍ¼ÏñµÄÁÁ¶ÈºÍ¶Ô±È¶È
+//²Ù×÷ÏñËØ
+void test_bright_and_contrast()
+{
+	
+	system("color 2F");//¸Ä±ä¿ØÖÆÌ¨Ç°¾°É«ºÍ±³¾°É«
+
+	// ¶ÁÈëÓÃ»§Ìá¹©µÄÍ¼Ïñ
+	Mat srcImage = imread("1.jpg");
+	if (!srcImage.data) { cerr << "error when read g_srcImage!" << endl; }
+
+	//¹¹ÔìÒ»¸öºÍÔ­Í¼ÏñÏàÍ¬µÄÄ¿±êÍ¼Ïñ
+	Mat dstImage = Mat::zeros(srcImage.size(), srcImage.type());
+
+	//Éè¶¨¶Ô±È¶ÈºÍÁÁ¶ÈµÄ³õÖµ
+	g_nContrastValue = 80;
+	g_nBrightValue = 80;
+
+	//´´½¨´°¿Ú
+	namedWindow("¡¾Ð§¹ûÍ¼´°¿Ú¡¿", 1);
+
+	Mat imgs[2] = {srcImage,dstImage };
+
+
+	//´´½¨¹ì¼£Ìõ
+	createTrackbar("¶Ô±È¶È£º", "¡¾Ð§¹ûÍ¼´°¿Ú¡¿", &g_nContrastValue, 300, ContrastAndBright,imgs);
+	createTrackbar("ÁÁ   ¶È£º", "¡¾Ð§¹ûÍ¼´°¿Ú¡¿", &g_nBrightValue, 200, ContrastAndBright,imgs);
+
+	//¸Õ¿ªÊ¼µ÷ÓÃ»Øµ÷º¯ÊýÀ´ÏÔÊ¾Í¼Ïñ
+	ContrastAndBright(g_nContrastValue, &imgs);
+	ContrastAndBright(g_nBrightValue, &imgs);
+
+	//Êä³öÒ»Ð©°ïÖúÐÅÏ¢
+	cout << endl << "\tÔËÐÐ³É¹¦£¬Çëµ÷Õû¹ö¶¯Ìõ¹Û²ìÍ¼ÏñÐ§¹û\n\n"
+		<< "\t°´ÏÂ¡°q¡±¼üÊ±£¬³ÌÐòÍË³ö\n";
+
+	//°´ÏÂ¡°q¡±¼üÊ±£¬³ÌÐòÍË³ö
+	while (char(waitKey(1)) != 'q') {}
+
+
+
 }
